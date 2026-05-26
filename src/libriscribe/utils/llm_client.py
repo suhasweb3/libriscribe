@@ -2,6 +2,7 @@
 import openai
 from openai import OpenAI  # For OpenAI
 import logging
+import re  # For regex operations
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from libriscribe.settings import Settings
 
@@ -56,6 +57,12 @@ class LLMClient:
              if not self.settings.mistral_api_key:
                 raise ValueError("Mistral API key is not set")
              return None
+        elif self.llm_provider == "ollama":
+            # Ollama uses OpenAI-compatible API, no API key needed
+            return OpenAI(
+                api_key="ollama",  # Dummy key, Ollama doesn't require authentication
+                base_url=self.settings.ollama_base_url + "/v1"
+            )
         else:
             raise ValueError(f"Unsupported LLM provider: {self.llm_provider}")
 
@@ -73,6 +80,8 @@ class LLMClient:
              return "deepseek-coder-6.7b-instruct"
         elif self.llm_provider == "mistral":
             return "mistral-medium-latest"
+        elif self.llm_provider == "ollama":
+            return self.settings.ollama_model
         else:
             return "unknown"  # Should not happen, but good for safety
     def set_model(self, model_name: str):
@@ -89,7 +98,7 @@ class LLMClient:
             if "IMPORTANT: The content should be written entirely in" not in prompt and language != "English":
                 prompt += f"\n\nIMPORTANT: Generate the response in {language}."
                 
-            if self.llm_provider == "openai" or self.llm_provider == "openrouter":
+            if self.llm_provider == "openai" or self.llm_provider == "openrouter" or self.llm_provider == "ollama":
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt + "\n\nPlease format any JSON output in markdown code blocks with ```json```" if self.llm_provider == "openrouter" else prompt}],

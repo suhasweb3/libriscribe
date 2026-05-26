@@ -42,6 +42,9 @@ def select_llm(project_knowledge_base: ProjectKnowledgeBase):
     available_llms = []
     settings = Settings()
 
+    # Ollama is always available (local, no API key needed)
+    available_llms.append("ollama")
+    
     if settings.openrouter_api_key:
         available_llms.append("openrouter")
     if settings.openai_api_key:
@@ -56,7 +59,7 @@ def select_llm(project_knowledge_base: ProjectKnowledgeBase):
         available_llms.append("mistral")
 
     if not available_llms:
-        console.print("[red]❌ No LLM API keys found in .env file. Please add at least one.[/red]")
+        console.print("[red]❌ No LLM providers available. Please configure at least one.[/red]")
         raise typer.Exit(code=1)
 
     console.print("")
@@ -73,6 +76,8 @@ def select_llm(project_knowledge_base: ProjectKnowledgeBase):
         llm_choice = "deepseek"
     elif "Mistral" in llm_choice:
         llm_choice = "mistral"
+    elif "Ollama" in llm_choice or llm_choice == "ollama":
+        llm_choice = "ollama"
         
     project_knowledge_base.set("llm_provider", llm_choice)
     return llm_choice
@@ -736,19 +741,76 @@ def start():
 # Removed the create command
 
 @app.command()
-def outline():
+def outline(project_name: str = typer.Option(None, prompt="Project name")):
     """Generates a book outline."""
+    # Load project
+    try:
+        project_manager.load_project_data(project_name)
+    except Exception as e:
+        console.print(f"[red]❌ Failed to load project: {e}[/red]")
+        raise typer.Exit(code=1)
+    
+    # Initialize LLM
+    kb = project_manager.project_knowledge_base
+    llm_provider = kb.get("llm_provider", "ollama")
+    
+    try:
+        project_manager.initialize_llm_client(llm_provider)
+    except Exception as e:
+        console.print(f"[red]❌ Failed to initialize LLM: {e}[/red]")
+        raise typer.Exit(code=1)
+    
+    # Generate outline
     project_manager.generate_outline()
+    project_manager.checkpoint()
 
 @app.command()
-def characters():
+def characters(project_name: str = typer.Option(None, prompt="Project name")):
     """Generates character profiles."""
+    # Load project
+    try:
+        project_manager.load_project_data(project_name)
+    except Exception as e:
+        console.print(f"[red]❌ Failed to load project: {e}[/red]")
+        raise typer.Exit(code=1)
+    
+    # Initialize LLM
+    kb = project_manager.project_knowledge_base
+    llm_provider = kb.get("llm_provider", "ollama")
+    
+    try:
+        project_manager.initialize_llm_client(llm_provider)
+    except Exception as e:
+        console.print(f"[red]❌ Failed to initialize LLM: {e}[/red]")
+        raise typer.Exit(code=1)
+    
+    # Generate characters
     project_manager.generate_characters()
+    project_manager.checkpoint()
 
 @app.command()
-def worldbuilding():
+def worldbuilding(project_name: str = typer.Option(None, prompt="Project name")):
     """Generates worldbuilding details."""
+    # Load project
+    try:
+        project_manager.load_project_data(project_name)
+    except Exception as e:
+        console.print(f"[red]❌ Failed to load project: {e}[/red]")
+        raise typer.Exit(code=1)
+    
+    # Initialize LLM
+    kb = project_manager.project_knowledge_base
+    llm_provider = kb.get("llm_provider", "ollama")
+    
+    try:
+        project_manager.initialize_llm_client(llm_provider)
+    except Exception as e:
+        console.print(f"[red]❌ Failed to initialize LLM: {e}[/red]")
+        raise typer.Exit(code=1)
+    
+    # Generate worldbuilding
     project_manager.generate_worldbuilding()
+    project_manager.checkpoint()
 
 @app.command()
 def write(chapter_number: int = typer.Option(..., prompt="Chapter number")):
@@ -766,15 +828,48 @@ def edit(chapter_number: int = typer.Option(..., prompt="Chapter number to edit"
 
 
 @app.command()
-def format():
+def format(project_name: str = typer.Option(None, prompt="Project name to format")):
     """Formats the entire book into a single Markdown or PDF file."""
+    
+    # Load project if not already loaded
+    if not project_manager.project_dir or not project_manager.project_knowledge_base:
+        if not project_name:
+            # Try to find projects
+            settings = Settings()
+            projects_dir = Path(settings.projects_dir)
+            if projects_dir.exists():
+                projects = [p.name for p in projects_dir.iterdir() if p.is_dir() and (p / "project_data.json").exists()]
+                if len(projects) == 1:
+                    project_name = projects[0]
+                    console.print(f"[cyan]Using project: {project_name}[/cyan]")
+                elif projects:
+                    console.print("\n[bold]Available projects:[/bold]")
+                    for i, p in enumerate(projects, 1):
+                        console.print(f"  {i}. {p}")
+                    project_name = typer.prompt("\nEnter project name")
+        
+        if project_name:
+            console.print(f"📂 Loading project: {project_name}...")
+            project_manager.load_project_data(project_name)
+            
+            # Initialize LLM
+            llm_provider = project_manager.project_knowledge_base.get("llm_provider", "ollama")
+            console.print(f"🤖 Initializing {llm_provider}...")
+            project_manager.initialize_llm_client(llm_provider)
+            console.print(f"[green]✓ Ready[/green]\n")
+        else:
+            console.print("[red]No project specified or found.[/red]")
+            return
+    
     output_format = select_from_list("Choose output format:", ["Markdown (.md)", "PDF (.pdf)"])
     if output_format == "Markdown (.md)":
         output_path = str(project_manager.project_dir / "manuscript.md")
     else:
         output_path = str(project_manager.project_dir / "manuscript.pdf")
-    project_manager.format_book(output_path)  # Pass output_path here
-    print(f"\nBook formatted and saved to: {output_path}")
+    
+    console.print(f"\n📚 Formatting book...")
+    project_manager.format_book(output_path)
+    console.print(f"\n[green]✓ Book formatted and saved to:[/green] {output_path}\n")
 
 @app.command()
 def research(query: str = typer.Option(..., prompt="Research query")):
@@ -795,6 +890,12 @@ def resume(project_name: str = typer.Option(..., prompt="Project name to resume"
         if not project_manager.project_knowledge_base: 
             print("ERROR resuming project")
             return
+
+        # Initialize LLM client from saved project data
+        llm_provider = project_manager.project_knowledge_base.get("llm_provider", "ollama")
+        console.print(f"🤖 Initializing {llm_provider}...")
+        project_manager.initialize_llm_client(llm_provider)
+        console.print(f"[green]✓ {llm_provider} connected[/green]\n")
 
         if project_manager.project_dir and (project_manager.project_dir / "outline.md").exists():
             # Find the last written chapter

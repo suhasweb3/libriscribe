@@ -155,7 +155,7 @@ class ProjectManagerAgent:
         if project_data_path.exists():
             data = ProjectKnowledgeBase.load_from_file(str(project_data_path)) 
             if data:
-                self.                self.project_knowledge_base = data
+                self.project_knowledge_base = data
                 #CRITICAL: Set project_dir in project_knowledge_base
                 self.project_knowledge_base.project_dir = self.project_dir
             else:
@@ -292,7 +292,10 @@ class ProjectManagerAgent:
             
             # Format with LLM to ensure proper structure and flow
             console.print(f"{self.agents['formatting'].name} is: Formatting Original Chapters...")
-            prompt = prompts.FORMATTING_PROMPT.format(chapters=original_content)
+            prompt = prompts.FORMATTING_PROMPT.format(
+                chapters=original_content,
+                language=self.project_knowledge_base.language
+            )
             formatted_original = self.llm_client.generate_content(prompt, max_tokens=4000)
             
             # Add title page
@@ -431,23 +434,78 @@ class ProjectManagerAgent:
             
         return title_page
 
-    def markdown_to_pdf(self, markdown_text:str, output_path:str):
-      """Converts the formatted markdown to PDF"""
-      pdf = FPDF()
-      pdf.add_page()
-      pdf.set_font("Arial", size=12)
-
-      # Basic Markdown parsing and PDF generation
-      lines = markdown_text.split("\n")
-      for line in lines:
-          if line.startswith("# "):  # Chapter heading
-              pdf.set_font("Arial", 'B', 16)  # Bold, larger font
-              pdf.cell(0, 10, line[2:], ln=True)  # Remove '#' and add to PDF
-              pdf.set_font("Arial", size=12)  # Reset font
-          elif line.startswith("## "): # Subheading
-              pdf.set_font("Arial", 'B', 14)
-              pdf.cell(0, 10, line[3:], ln=True)
-              pdf.set_font("Arial", size=12)  # Reset font
-          else: # Regular text
-            pdf.multi_cell(0, 10, line)
-      pdf.output(output_path)
+    def markdown_to_pdf(self, markdown_text: str, output_path: str):
+        """Converts the formatted markdown to PDF with better formatting"""
+        try:
+            from fpdf import FPDF
+            
+            class PDF(FPDF):
+                def header(self):
+                    pass  # No header for now
+                
+                def footer(self):
+                    self.set_y(-15)
+                    self.set_font('Arial', 'I', 8)
+                    self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+            
+            pdf = PDF()
+            pdf.add_page()
+            pdf.set_auto_page_break(auto=True, margin=15)
+            
+            # Process markdown line by line
+            lines = markdown_text.split("\n")
+            
+            for line in lines:
+                line = line.strip()
+                
+                if not line:
+                    pdf.ln(5)  # Add spacing for empty lines
+                    continue
+                
+                # Handle different markdown elements
+                if line.startswith("# "):  # Main heading (H1)
+                    pdf.set_font("Arial", 'B', 18)
+                    # Remove markdown and encode properly
+                    text = line[2:].encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 10, text, align='C')
+                    pdf.ln(5)
+                    pdf.set_font("Arial", size=12)
+                    
+                elif line.startswith("## "):  # Subheading (H2)
+                    pdf.set_font("Arial", 'B', 14)
+                    text = line[3:].encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 8, text)
+                    pdf.ln(3)
+                    pdf.set_font("Arial", size=12)
+                    
+                elif line.startswith("### "):  # Sub-subheading (H3)
+                    pdf.set_font("Arial", 'B', 12)
+                    text = line[4:].encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 7, text)
+                    pdf.ln(2)
+                    pdf.set_font("Arial", size=12)
+                    
+                elif line.startswith("**") and line.endswith("**"):  # Bold text
+                    pdf.set_font("Arial", 'B', 12)
+                    text = line[2:-2].encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 6, text)
+                    pdf.set_font("Arial", size=12)
+                    
+                elif line.startswith("* ") or line.startswith("- "):  # Bullet points
+                    pdf.set_font("Arial", size=12)
+                    text = "  • " + line[2:].encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 6, text)
+                    
+                else:  # Regular paragraph text
+                    pdf.set_font("Arial", size=12)
+                    # Handle special characters
+                    text = line.encode('latin-1', 'replace').decode('latin-1')
+                    pdf.multi_cell(0, 6, text)
+            
+            pdf.output(output_path)
+            console.print(f"[green]✓ PDF created successfully![/green]")
+            
+        except Exception as e:
+            console.print(f"[red]Error creating PDF: {e}[/red]")
+            console.print("[yellow]Tip: For better Unicode support, try Markdown output instead.[/yellow]")
+            logger.exception("PDF generation error")

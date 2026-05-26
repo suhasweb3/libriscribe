@@ -225,13 +225,30 @@ If there's a book length: ({book_length}), adjust the number of chapters accordi
 - [Event 2]
 - [Event 3]
 
-[Repeat the Chapter structure for each chapter, maintaining EXACT same formatting]
+## Chapter 3: [Chapter Title]
+### Summary
+[Detailed chapter summary, 1-2 paragraphs]
 
-Note: For short stories, use 1-2 chapters. For novellas, use 5-10 chapters. For novels, use 10+ chapters.
-Return the outline using this EXACT Markdown structure. Do not include any optional or conditional chapters.
-CRITICALLY IMPORTANT: Add specific chapter numbers to each chapter (Chapter 1, Chapter 2, etc.)
+### Key Events
+- [Event 1]
+- [Event 2]
+- [Event 3]
+
+[Continue with ALL remaining chapters. Generate EVERY SINGLE chapter. Do not use placeholders or "repeat" instructions. Write out each chapter completely.]
+
+CRITICAL REQUIREMENTS:
+1. Generate ALL chapters - do not skip any
+2. Each chapter MUST have a unique title
+3. Each chapter MUST have a detailed summary (1-2 paragraphs)
+4. Each chapter MUST have 3+ key events listed
+5. Use consistent formatting for all chapters
+6. Number chapters sequentially (Chapter 1, Chapter 2, Chapter 3, etc.)
+7. For short stories: generate 1-2 chapters
+8. For novellas: generate 5-10 chapters
+9. For novels: generate 10+ chapters (up to 20)
 
 IMPORTANT: The content should be written entirely in {language}.
+Return the outline using this EXACT Markdown structure. Do not include any optional or conditional chapters.
 """
 
 CHARACTER_PROMPT = """

@@ -25,22 +25,20 @@ class OutlinerAgent(Agent):
     def execute(self, project_knowledge_base: ProjectKnowledgeBase, output_path: Optional[str] = None) -> None:
         """Generates a chapter outline and then iterates to generate scene outlines."""
         try:
-            # --- Step 1: Determine max chapters based on book length FIRST ---
-            max_chapters = self._get_max_chapters(project_knowledge_base.book_length)
+            # --- Step 1: Use num_chapters from project data if available, otherwise determine from book length ---
+            if hasattr(project_knowledge_base, 'num_chapters') and project_knowledge_base.num_chapters:
+                max_chapters = project_knowledge_base.num_chapters
+                console.print(f"[cyan]Using {max_chapters} chapters from project configuration[/cyan]")
+            else:
+                max_chapters = self._get_max_chapters(project_knowledge_base.book_length)
+                console.print(f"[cyan]Using {max_chapters} chapters based on book length[/cyan]")
             
             # Enhance the prompt with explicit chapter count instruction
-            if project_knowledge_base.book_length == "Short Story":
-                initial_prompt = prompts.OUTLINE_PROMPT.format(**project_knowledge_base.model_dump())
-                initial_prompt += f"\n\nIMPORTANT: This is a SHORT STORY. Generate EXACTLY {max_chapters} chapters. Do not exceed this limit."
-            elif project_knowledge_base.book_length == "Novella":
-                initial_prompt = prompts.OUTLINE_PROMPT.format(**project_knowledge_base.model_dump())
-                initial_prompt += f"\n\nIMPORTANT: This is a NOVELLA. Generate EXACTLY {max_chapters} chapters. Do not exceed this limit."
-            else:
-                initial_prompt = prompts.OUTLINE_PROMPT.format(**project_knowledge_base.model_dump())
-                initial_prompt += f"\n\nIMPORTANT: Generate at most {max_chapters} chapters."
+            initial_prompt = prompts.OUTLINE_PROMPT.format(**project_knowledge_base.model_dump())
+            initial_prompt += f"\n\nIMPORTANT: Generate EXACTLY {max_chapters} chapters. Each chapter must have a title, detailed summary, and key events."
 
             console.print(f"📝 [cyan]Creating chapter outline...[/cyan]")
-            initial_outline = self.llm_client.generate_content(initial_prompt, max_tokens=3000, temperature=0.5)
+            initial_outline = self.llm_client.generate_content(initial_prompt, max_tokens=8000, temperature=0.5)
             if not initial_outline:
                 logger.error("Initial outline generation failed.")
                 return

@@ -54,6 +54,7 @@ pip install -e .
 
 *   **LLM API Key:** Get an API key from one of the following services:
 
+    - **Ollama (FREE & Local):** [Install Ollama](https://ollama.com) - No API key needed! See [OLLAMA_SETUP.md](OLLAMA_SETUP.md)
     - **OpenAI:** [Get API Key](https://platform.openai.com/signup/)
     - **Anthropic:** [Get API Key](https://console.anthropic.com/)
     - **DeepSeek:** [Get API Key](https://platform.deepseek.com/)
@@ -62,6 +63,11 @@ pip install -e .
 
 Create a `.env` file in the root directory and fill the api key of the LLM that you want to use:
 ```bash
+# For Ollama (Local & Free - Recommended!)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
+# For Cloud APIs (Optional)
 OPENAI_API_KEY=your_api_key_here
 GOOGLE_AI_STUDIO_API_KEY=your_api_key_here
 CLAUDE_API_KEY=your_api_key_here
