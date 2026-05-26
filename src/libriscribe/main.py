@@ -15,6 +15,7 @@ from pydantic import PydanticDeprecationWarning
 from libriscribe.knowledge_base import ProjectKnowledgeBase, Chapter  # Import the new class
 from libriscribe.settings import Settings
 from rich.progress import track  # Import track
+from libriscribe.auth import authenticate  # Import authentication
 warnings.filterwarnings("ignore", category=PydanticDeprecationWarning)
 
 # Configure logging (same as before)
@@ -743,6 +744,11 @@ def start():
 @app.command()
 def outline(project_name: str = typer.Option(None, prompt="Project name")):
     """Generates a book outline."""
+    # Authenticate user
+    if not authenticate():
+        console.print("[red]❌ Authentication failed. Exiting.[/red]")
+        raise typer.Exit(code=1)
+    
     # Load project
     try:
         project_manager.load_project_data(project_name)
