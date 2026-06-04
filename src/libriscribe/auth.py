@@ -13,9 +13,11 @@ from rich.prompt import Prompt
 console = Console()
 
 def generate_password_hash():
-    """Generate the correct password hash for current time"""
+    """Generate the correct password hash for current time (5-minute intervals)"""
     now = datetime.now()
-    time_str = now.strftime("%H%M")  # HHMM format (no seconds)
+    # Round down to nearest 5-minute interval
+    minute = (now.minute // 5) * 5
+    time_str = f"{now.hour:02d}{minute:02d}"  # HHMM format
     password_string = f"{time_str}suhasdm"
     
     # Create SHA256 hash
