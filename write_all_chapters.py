@@ -7,7 +7,6 @@ sys.path.insert(0, 'src')
 from pathlib import Path
 from libriscribe.agents.project_manager import ProjectManagerAgent
 from libriscribe.settings import Settings
-from libriscribe.auth import authenticate
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 from rich.table import Table
@@ -82,11 +81,6 @@ def check_existing_chapters(project_manager, num_chapters):
     return existing, missing
 
 def main():
-    # Authenticate first
-    if not authenticate():
-        console.print("[red]❌ Authentication failed. Exiting.[/red]")
-        return
-    
     console.print("\n[bold cyan]📚 LibriScribe - Dynamic Chapter Writer[/bold cyan]\n")
     
     # Find available projects
