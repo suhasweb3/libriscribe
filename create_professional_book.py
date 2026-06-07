@@ -14,6 +14,7 @@ import argparse
 import json
 import subprocess
 import shutil
+from libriscribe.auth import authenticate
 
 console = Console()
 
@@ -396,6 +397,11 @@ def create_professional_pdf(combined_md: Path, output_pdf: Path, metadata: dict,
         return False
 
 def main():
+    # Authenticate first
+    if not authenticate():
+        console.print("[red]❌ Authentication failed. Exiting.[/red]")
+        sys.exit(1)
+    
     parser = argparse.ArgumentParser(
         description='Create professional KDP-ready book'
     )
