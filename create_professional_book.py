@@ -179,6 +179,10 @@ def create_latex_template(trim_size: str, isbn: str):
 \usepackage{enumitem}
 \setlist{nosep}
 
+% Define tightlist command for Pandoc compatibility
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
 % Graphics
 \usepackage{graphicx}
 
@@ -229,6 +233,9 @@ All rights reserved.
 No part of this book may be reproduced or transmitted in any form or by any means, electronic or mechanical, including photocopying, recording, or by any information storage and retrieval system, without permission in writing from the author.
 
 \vspace{0.2in}
+ISBN: ''' + isbn + r'''
+
+\vspace{0.1in}
 First Edition
 \end{flushleft}
 \clearpage
